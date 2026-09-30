@@ -6,14 +6,14 @@
 # sudo apt update
 # sudo apt install python3-smbus i2c-tools -y
 # sudo raspi-config       # Enable I2C
-# sudo i2cdetect -y 1     # Check LCD (0x27)
+# sudo i2cdetect -y 1     # Check LCD address (0x27)
 # python3 lcd_i2c.py
 #
 # Connections:
-# LCD VCC  -> Pin 2 (5V)
-# LCD GND  -> Pin 6 (GND)
-# LCD SDA  -> Pin 3 (GPIO2)
-# LCD SCL  -> Pin 5 (GPIO3)
+# LCD VCC -> Pin 2 (5V)
+# LCD GND -> Pin 6 (GND)
+# LCD SDA -> Pin 3 (GPIO2)
+# LCD SCL -> Pin 5 (GPIO3)
 
 import smbus
 import time
@@ -36,13 +36,11 @@ E_DELAY = 0.0005
 bus = smbus.SMBus(1)
 
 
-def lcd_init():
-    lcd_byte(0x33, LCD_CMD)
-    lcd_byte(0x32, LCD_CMD)
-    lcd_byte(0x06, LCD_CMD)
-    lcd_byte(0x0C, LCD_CMD)
-    lcd_byte(0x28, LCD_CMD)
-    lcd_byte(0x01, LCD_CMD)
+def lcd_toggle_enable(bits):
+    time.sleep(E_DELAY)
+    bus.write_byte(I2C_ADDR, bits | ENABLE)
+    time.sleep(E_PULSE)
+    bus.write_byte(I2C_ADDR, bits & ~ENABLE)
     time.sleep(E_DELAY)
 
 
@@ -57,11 +55,13 @@ def lcd_byte(bits, mode):
     lcd_toggle_enable(bits_low)
 
 
-def lcd_toggle_enable(bits):
-    time.sleep(E_DELAY)
-    bus.write_byte(I2C_ADDR, bits | ENABLE)
-    time.sleep(E_PULSE)
-    bus.write_byte(I2C_ADDR, bits & ~ENABLE)
+def lcd_init():
+    lcd_byte(0x33, LCD_CMD)
+    lcd_byte(0x32, LCD_CMD)
+    lcd_byte(0x06, LCD_CMD)
+    lcd_byte(0x0C, LCD_CMD)
+    lcd_byte(0x28, LCD_CMD)
+    lcd_byte(0x01, LCD_CMD)
     time.sleep(E_DELAY)
 
 
@@ -77,13 +77,9 @@ def main():
     lcd_init()
 
     while True:
-        lcd_string("RPi Raspberry Pi", LCD_LINE_1)
-        lcd_string("I2C LCD Display", LCD_LINE_2)
-        time.sleep(3)
-
         lcd_string("Hello Zeenat!", LCD_LINE_1)
-        lcd_string("LCD Working", LCD_LINE_2)
-        time.sleep(3)
+        lcd_string("IoT Exam", LCD_LINE_2)
+        time.sleep(1)
 
 
 if __name__ == "__main__":
