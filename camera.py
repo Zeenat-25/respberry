@@ -3,7 +3,7 @@
 # Commands:
 # sudo apt update
 # sudo apt install python3-picamera2 -y
-# python3 pi_camera.py
+# python3 camera.py
 #
 # Connection:
 # Pi Camera -> Raspberry Pi CSI Camera Port
