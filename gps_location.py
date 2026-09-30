@@ -1,127 +1,69 @@
-# ============================================================
-# RASPBERRY PI GPS LOCATION SYSTEM
-# ============================================================
+# Raspberry Pi GPS Location System
 #
-# GITHUB COMMANDS:
-#
+# Commands:
 # git clone https://github.com/Zeenat-25/respberry.git
-#
 # cd respberry
+# sudo apt update
+# sudo apt install python3-serial python3-pip -y
+# pip3 install pynmea2 --break-system-packages
 #
-# Install required library:
-# pip3 install pynmea2
-#
-# Enable Serial:
+# Enable GPS Serial:
 # sudo raspi-config
-#
 # Interface Options
 # -> Serial Port
-# -> Enable Serial Interface
+# -> Login shell over serial? -> No
+# -> Serial port hardware enabled? -> Yes
+# -> Finish
+# -> Reboot
 #
-# Check GPS port:
-# ls /dev/serial*
+# Check serial port:
+# ls -l /dev/serial*
 #
-# Run program:
+# Run:
 # python3 gps_location.py
 #
-#
-# ============================================================
-# GPS CONNECTIONS (NEO-6M GPS MODULE)
-# ============================================================
-#
-# GPS VCC  ---> Raspberry Pi Pin 2 (5V)
-#
-# GPS GND  ---> Raspberry Pi Pin 6 (GND)
-#
-# GPS TX   ---> Raspberry Pi Pin 10 (GPIO15 RXD)
-#
-# GPS RX   ---> Raspberry Pi Pin 8  (GPIO14 TXD)
-#
-# ============================================================
-
+# Connections:
+# GPS VCC -> Pin 2 (5V)
+# GPS GND -> Pin 6 (GND)
+# GPS TX  -> Pin 10 (GPIO15 / RXD)
+# GPS RX  -> Pin 8 (GPIO14 / TXD)
 
 import serial
 import pynmea2
-import time
 
-
-# GPS Serial Port
-GPS_PORT = "/dev/serial0"
-
-# GPS baud rate
-BAUD_RATE = 9600
-
+PORT = "/dev/serial0"
+BAUD = 9600
 
 try:
-
-    gps = serial.Serial(
-        GPS_PORT,
-        baudrate=BAUD_RATE,
-        timeout=1
-    )
+    gps = serial.Serial(PORT, BAUD, timeout=1)
 
     print("GPS Connected")
-    print("Waiting for satellite data...")
+    print("Waiting for GPS data...")
 
+    while True:
+        line = gps.readline().decode("ascii", errors="ignore").strip()
+
+        if line.startswith(("$GPGGA", "$GNGGA")):
+            try:
+                data = pynmea2.parse(line)
+
+                if data.latitude != 0 and data.longitude != 0:
+                    print("\nGPS LOCATION")
+                    print("Latitude :", data.latitude)
+                    print("Longitude:", data.longitude)
+                    print("Altitude :", data.altitude, "meters")
+                    print("Satellites:", data.num_sats)
+                    print("UTC Time :", data.timestamp)
+
+            except pynmea2.ParseError:
+                pass
+
+except KeyboardInterrupt:
+    print("\nGPS Stopped")
 
 except Exception as e:
+    print("GPS Error:", e)
 
-    print("GPS Connection Error:")
-    print(e)
-
-    exit()
-
-
-
-while True:
-
-    try:
-
-        data = gps.readline().decode(
-            "ascii",
-            errors="replace"
-        )
-
-
-        # Check GPS location sentence
-        if data.startswith("$GPGGA"):
-
-            msg = pynmea2.parse(data)
-
-
-            latitude = msg.latitude
-            longitude = msg.longitude
-
-
-            print("--------------------------------")
-            print("GPS LOCATION")
-            print("--------------------------------")
-
-            print("Latitude :", latitude)
-
-            print("Longitude:", longitude)
-
-            print("Altitude :", msg.altitude, "meters")
-
-            print("Satellites:", msg.num_sats)
-
-            print("UTC Time :", msg.timestamp)
-
-            print("--------------------------------")
-
-
-            time.sleep(2)
-
-
-    except pynmea2.ParseError:
-
-        pass
-
-
-    except KeyboardInterrupt:
-
-        print("\nGPS Stopped")
-
+finally:
+    if "gps" in locals() and gps.is_open:
         gps.close()
-
-        break
